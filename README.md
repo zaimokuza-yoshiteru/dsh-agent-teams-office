@@ -2,6 +2,18 @@
 
 在 DSH 原生右侧边栏中查看 Agent Teams 的办公室。支持 3D / 像素切换、16 个队友工位和 Lead 独立办公室，点击人物可打开对应会话。
 
+## 预览
+
+以下为办公室组件的示例团队截图，不包含真实会话信息。
+
+**3D 视图**
+
+![3D 办公室：16 个队友工位与 Lead 独立办公室](https://raw.githubusercontent.com/zaimokuza-yoshiteru/dsh-agent-teams-office/main/docs/screenshots/office-3d.jpg)
+
+**像素视图**
+
+![像素办公室：工作中的队友与 Lead 独立办公室](https://raw.githubusercontent.com/zaimokuza-yoshiteru/dsh-agent-teams-office/main/docs/screenshots/office-pixel.jpg)
+
 ## 安装
 
 需要 **DSH 0.1.6-alpha.1**，并在宿主中启用 Agent Teams。未启用时不会显示办公室入口。
