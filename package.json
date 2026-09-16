@@ -1,0 +1,82 @@
+{
+  "name": "@zaimokuza/dsh-agent-teams-office",
+  "version": "0.1.0-beta.1",
+  "private": false,
+  "description": "Office views for DSH Agent Teams.",
+  "type": "module",
+  "main": "./src/host/index.js",
+  "exports": {
+    ".": "./src/host/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": "0.1.6-alpha.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "art": "node scripts/generate-art.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:integration": "node scripts/test-teams.mjs",
+    "desktop": "node scripts/desktop.mjs",
+    "prepack": "npm run build",
+    "pack:verify": "node scripts/verify-packed.mjs",
+    "check": "npm test && npm run pack:verify",
+    "prepublishOnly": "npm run check"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "pixi.js": "8.17.1",
+    "react": "18.3.1",
+    "three": "0.186.0"
+  },
+  "files": [
+    "src/host",
+    "src/shared.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "vendor/munder/LICENSE",
+    "vendor/the-office/LICENSE",
+    "vendor/three/LICENSE",
+    "lib/THIRD_PARTY_LICENSES.txt"
+  ],
+  "license": "MIT",
+  "author": "zaimokuza-yoshiteru",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zaimokuza-yoshiteru/dsh-agent-teams-office.git"
+  },
+  "homepage": "https://github.com/zaimokuza-yoshiteru/dsh-agent-teams-office",
+  "bugs": {
+    "url": "https://github.com/zaimokuza-yoshiteru/dsh-agent-teams-office/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "agent-teams",
+    "dsh-plugin"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
+  }
+}
