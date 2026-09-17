@@ -1,3 +1,7 @@
+import type { Context as HostContext } from '@deepseek-ai/cordis';
+import type { LlmAdapter, StreamChunk } from '@deepseek-ai/dsh-llm';
+import type SessionQueryEngine from '@deepseek-ai/dsh-session-query';
+import type { SessionId } from '@deepseek-ai/dsh-session/types';
 /** Real DSH services, deterministic local model, no credentials or network. */
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -5,12 +9,23 @@ import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { createActivityFeed } from '../src/host/activity-feed.js';
-import { createActivityInbox } from '../src/client/activities.js';
-import { readOfficeSnapshot } from '../src/host/snapshot.js';
-const repo = process.env.DSH_DESKTOP_REPO!;
+import { createActivityFeed } from '../src/host/activity-feed.ts';
+import { createActivityInbox } from '../src/client/activities.ts';
+import { readOfficeSnapshot } from '../src/host/snapshot.ts';
+const repo = process.env.DSH_DESKTOP_REPO;
+assert.ok(repo,'DSH_DESKTOP_REPO is required');
 const require = createRequire(join(repo, 'node_modules/.pnpm/node_modules/package.json'));
-const load = (name: string) => import(pathToFileURL(require.resolve(name)).href);
+interface HostModules {
+  '@deepseek-ai/cordis': typeof import('@deepseek-ai/cordis');
+  '@deepseek-ai/dsh-agent-loop-testkit': typeof import('@deepseek-ai/dsh-agent-loop-testkit');
+  '@deepseek-ai/dsh-agent-loop': typeof import('@deepseek-ai/dsh-agent-loop');
+  '@deepseek-ai/dsh-session-persistence-jsonl': typeof import('@deepseek-ai/dsh-session-persistence-jsonl');
+  '@deepseek-ai/dsh-subagent': typeof import('@deepseek-ai/dsh-subagent');
+  '@deepseek-ai/dsh-subagent-spawn-in-process': typeof import('@deepseek-ai/dsh-subagent-spawn-in-process');
+  '@deepseek-ai/dsh-experimental-agent-team': typeof import('@deepseek-ai/dsh-experimental-agent-team');
+}
+// Runtime code comes from the selected host; its public contract is checked against the SDK.
+const load = <K extends keyof HostModules>(name: K): Promise<HostModules[K]> => import(pathToFileURL(require.resolve(name)).href);
 const { Context } = await load('@deepseek-ai/cordis');
 const { mountAgentLoopTestDependencies } = await load('@deepseek-ai/dsh-agent-loop-testkit');
 const { default: AgentLoop } = await load('@deepseek-ai/dsh-agent-loop');
@@ -18,8 +33,8 @@ const { default: Persistence } = await load('@deepseek-ai/dsh-session-persistenc
 const { default: Subagents } = await load('@deepseek-ai/dsh-subagent');
 const Spawn = await load('@deepseek-ai/dsh-subagent-spawn-in-process');
 const { default: Teams } = await load('@deepseek-ai/dsh-experimental-agent-team');
-const { MockAdapter } = await import(pathToFileURL(join(repo, 'packages/core/agent-loop/tests/mock-adapter.ts')).href);
-const { TestSessionQuery } = await import(pathToFileURL(join(repo, 'packages/experimental/agent-team/tests/test-session-query.ts')).href);
+const { MockAdapter }: {MockAdapter:new(script:('hang'|StreamChunk[])[])=>LlmAdapter} = await import(pathToFileURL(join(repo, 'packages/core/agent-loop/tests/mock-adapter.ts')).href);
+const { TestSessionQuery }: {TestSessionQuery:new(ctx:HostContext)=>SessionQueryEngine} = await import(pathToFileURL(join(repo, 'packages/experimental/agent-team/tests/test-session-query.ts')).href);
 const storage = mkdtempSync(join(tmpdir(), 'dsh-agent-teams-office-teams-'));
 const ctx = new Context();
 try {
@@ -31,7 +46,7 @@ try {
   await ctx.plugin(Spawn, { providerName: 'spawn' });
   await ctx.plugin(Teams);
   ctx.llm.registerAdapter(['office-test'], new MockAdapter(['hang']));
-  const lead = await ctx.agentLoop.create('office-test-lead', { provider: 'office-test', model: 'fixture' });
+  const lead = await ctx.agentLoop.create('office-test-lead' as SessionId, { provider: 'office-test', model: 'fixture' });
   const feed = createActivityFeed(ctx), inbox = createActivityInbox();
   const initial = {...readOfficeSnapshot(ctx, lead.id), ...await feed.read(lead, null)}; inbox.accept(initial);
   const task = await ctx.agentTeams.createTask(lead, { subject: 'Verify office state', description: 'Local integration fixture' });
@@ -47,6 +62,7 @@ try {
     if (running.members.find(row => row.id === worker.id)?.status === 'running') break;
     await new Promise(resolve => setTimeout(resolve, 20));
   }
+  assert.ok(running);
   assert.equal(running.leadId, lead.id);
   assert.equal(running.members.length, 2);
   assert.equal(running.members.find(row => row.id === worker.id)?.status, 'running');

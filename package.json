@@ -1,18 +1,18 @@
 {
   "name": "@zaimokuza/dsh-agent-teams-office",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "private": false,
   "description": "Office views for DSH Agent Teams.",
   "type": "module",
-  "main": "./src/host/index.js",
+  "main": "./lib/host.js",
   "exports": {
-    ".": "./src/host/index.js",
+    ".": "./lib/host.js",
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": "0.1.6-alpha.1"
+    "dsh": "0.1.6-alpha.1 || 0.1.6-alpha.2"
   },
   "dsh": {
     "bundle": {
@@ -22,7 +22,6 @@
       "inject": [
         "@deepseek-ai/dsh-client-connection",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-ui-sidebar-right",
         "@deepseek-ai/dsh-client-ui-primitives"
@@ -31,25 +30,61 @@
     }
   },
   "scripts": {
-    "art": "node scripts/generate-art.mjs",
-    "build": "node scripts/build.mjs",
-    "test": "node --test test/*.test.mjs",
-    "test:integration": "node scripts/test-teams.mjs",
-    "desktop": "node scripts/desktop.mjs",
+    "art": "node --import tsx scripts/generate-art.ts",
+    "build": "node --import tsx scripts/build.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:integration": "node --import tsx scripts/test-teams.ts",
+    "desktop": "node --import tsx scripts/desktop.ts",
     "prepack": "npm run build",
-    "pack:verify": "node scripts/verify-packed.mjs",
-    "check": "npm test && npm run pack:verify",
-    "prepublishOnly": "npm run check"
+    "pack:verify": "node --import tsx scripts/verify-packed.ts",
+    "check": "npm run typecheck && npm test && npm run pack:verify",
+    "prepublishOnly": "npm run check",
+    "test:client": "node --import tsx scripts/test-client.ts",
+    "typecheck": "node --import tsx scripts/check-typescript.ts && tsc -p tsconfig.json && tsc -p tsconfig.host.json && tsc -p tsconfig.tools.json && tsc -p tsconfig.test.json && tsc -p tsconfig.test-client.json"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/dsh-agent": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-agent-loop": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-agent-loop-testkit": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-api-session-controller": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-connection": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-resources": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-store": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-test-runtime": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-dockkit": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-session": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-experimental-agent-team": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-session": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-session-projection": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-session-query": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-subagent": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-subagent-spawn-in-process": "0.1.6-alpha.2",
+    "@testing-library/react": "16.3.2",
+    "@types/jsdom": "28.0.3",
+    "@types/node": "22.20.0",
+    "@types/react": "18.3.28",
+    "@types/three": "0.186.0",
     "esbuild": "0.28.1",
+    "jsdom": "29.1.1",
     "pixi.js": "8.17.1",
     "react": "18.3.1",
-    "three": "0.186.0"
+    "react-dom": "18.3.1",
+    "three": "0.186.0",
+    "tsx": "4.21.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
   },
   "files": [
-    "src/host",
-    "src/shared.js",
+    "lib/host.js",
     "lib/client.js",
     "cordis.patch.yml",
     "README.md",

@@ -12,3 +12,4 @@
 
 .office-nameplate-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:hidden}.office-nameplate-lines line{stroke:#577c7b;stroke-width:1;opacity:.35}
 .office-activity-effects{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.office-float-menu{width:100%;justify-content:flex-start}
