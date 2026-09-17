@@ -5,6 +5,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(root);
@@ -47,6 +48,20 @@ async function publishedIntegrity(): Promise<string | null> {
   return dist.integrity;
 }
 
+async function confirmPublication(integrity: string) {
+  // npm may accept a publish several minutes before its public registry exposes the version.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const published = await publishedIntegrity();
+    if (published !== null) {
+      assert.equal(published, integrity, 'The published npm archive must match this build');
+      return;
+    }
+    console.log('npm accepted the upload; waiting for the version to become available...');
+    await delay(15000);
+  }
+  throw new Error('npm is still processing this version. Rerun the workflow once it becomes available.');
+}
+
 validate();
 switch (process.argv[2]) {
   case 'validate': break;
@@ -60,7 +75,7 @@ switch (process.argv[2]) {
   }
   case 'github': {
     const {file, integrity} = archive();
-    assert.equal(await publishedIntegrity(), integrity, 'Confirm npm publication before creating the GitHub Release');
+    await confirmPublication(integrity);
     const release = spawnSync('gh', ['release', 'view', tag, '--json', 'tagName'], { encoding: 'utf8' });
     if (release.status !== 0) {
       const notes = `docs/releases/${pkg.version}.md`;
