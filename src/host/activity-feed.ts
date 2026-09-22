@@ -23,7 +23,8 @@ export function createActivityFeed(ctx: HostContext, { capacity = 512, maxTeams 
       r = root && records.get(root.session); if (!r) return;
       const calls = r.tools.get(session.id) ?? new Map<string, { name: string }>();
       if (event.type === 'tool/call') calls.set(event.data.callId, {name:event.data.name.slice(0,80)});
-      else for (const block of event.data.message.content) calls.delete(block.toolCallId);
+      // The source correlates tool results in both DSH 0.1.6 and Session V4.
+      else calls.delete(event.data.message.source.callId);
       while(calls.size > 32) calls.delete(calls.keys().next().value!);
       if(calls.size)r.tools.set(session.id,calls);else r.tools.delete(session.id);
       return;

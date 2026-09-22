@@ -9,8 +9,8 @@ export function agent(id: string): Agent { return stub<Agent>({id: sessionId(id)
 export function hostFixture(leadId = 'root', childId = 'child') {
   const ctx: HostContext = new Context(), root = agent(leadId), child = agent(childId);
   const members: TeamMemberView[] = [
-    {...member(leadId, { role:'lead', status:'running' }), id:root.id},
-    {...member(childId, {status:'inactive', diagnostics:['closed']}), id:child.id},
+    {...member(leadId, { role:'lead' }), id:root.id, status:'running'},
+    {...member(childId, {diagnostics:['closed']}), id:child.id, status:'inactive'},
   ];
   const tasks: TeamTaskView[] = [{...task(), id:'task' as TeamTaskId, blockedBy:[]}];
   const agents = new Map([[root.id,root],[child.id,child]]);

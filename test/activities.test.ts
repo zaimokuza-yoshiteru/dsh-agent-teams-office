@@ -7,6 +7,7 @@ import { homePoint, officePath, sitePoint, isOfficeWalkable } from '../src/clien
 import type { SessionEvent, SessionEventMap, SessionEventType, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import type { TeamId, TeamMessageId, TeamTaskId } from '@deepseek-ai/dsh-experimental-agent-team/types';
 import type { ToolCallId, MessageId } from '@deepseek-ai/dsh-llm';
+import { createToolResultMessage } from '@deepseek-ai/dsh-llm';
 import type { ActivityAdapter, ActivityFact, OfficeActivity } from '../src/types.ts';
 import { hostFixture, agent, sessionId } from './helpers/host.ts';
 import { member, task, snapshot, emptySnapshot } from './helpers/fixtures.ts';
@@ -23,9 +24,11 @@ function fixture(options: Parameters<typeof createActivityFeed>[1] = {}) {
   }
   return{ctx,feed,root,event};
 }
-function result(call: string): SessionEventMap['tool/result'] {
+function result(call: string, legacy: boolean, isError = false): SessionEventMap['tool/result'] {
   const callId = call as ToolCallId;
-  return {turn:0,step:0,message:{id:call as MessageId,role:'user',source:{kind:'tool',callId},content:[{type:'tool-result',toolCallId:callId,content:[]}]}};
+  if (!legacy) return {turn:0,step:0,message:createToolResultMessage({callId,content:[],isError})};
+  // Replay the released 0.1.6 wire format at the boundary to the newer SDK.
+  return {turn:0,step:0,message:{id:call as MessageId,role:'user',source:{kind:'tool',callId},content:[{type:'tool-result',toolCallId:callId,content:[],isError}]}} as unknown as SessionEventMap['tool/result'];
 }
 test('first read is a baseline; delivered messages publish once after a successful checkpoint',async()=>{
   const f=fixture(),first=await f.feed.read(f.root,null);
@@ -113,13 +116,13 @@ test('unreachable routes release actors without performing a fake interaction',(
   d.enqueue([{id:'blocked',kind:'message',actor:'a',target:'lead',at:Date.now()}]);d.tick(.05);d.tick(.05);
   assert.equal(d.inspect().active.length,0);assert.ok(!r.calls.some(c=>c[0]==='action'));d.dispose();
 });
-test('parallel tool results clear only their own call, without exporting arguments',async()=>{
+for (const legacy of [false, true]) test(`${legacy ? '0.1.6' : 'current SDK'} parallel tool results clear only their own call, including empty/error results`,async()=>{
   const f=fixture();
   const initial=await f.feed.read(f.root,null);
   f.event('tool/call',{turn:0,step:0,callId:'a' as ToolCallId,name:'read_file',arguments:'secret'});
   f.event('tool/call',{turn:0,step:0,callId:'b' as ToolCallId,name:'search',arguments:'secret'});
-  f.event('tool/result',result('a'));
+  f.event('tool/result',result('a',legacy));
   let next=await f.feed.read(f.root,initial.cursor);assert.equal(next.tools.lead.name,'search');assert.ok(!JSON.stringify(next).includes('secret'));
-  f.event('tool/result',result('b'));
+  f.event('tool/result',result('b',legacy,true));
   next=await f.feed.read(f.root,next.cursor);assert.deepEqual(next.tools,{});f.feed.dispose();
 });

@@ -1,6 +1,7 @@
 import type { TeamMemberView, TeamTaskStatus, TeamTaskView } from '@deepseek-ai/dsh-experimental-agent-team/client';
 
-export type MemberStatus = TeamMemberView['status'];
+/** DSH 0.1.6 reports idle separately; 0.1.7 includes it in inactive. */
+export type MemberStatus = TeamMemberView['status'] | 'idle';
 export type MemberRole = TeamMemberView['role'];
 export interface OfficeMember {
   id: string;

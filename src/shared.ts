@@ -1,6 +1,6 @@
 import type { TeamMemberView } from '@deepseek-ai/dsh-experimental-agent-team/client';
 import type { OfficeMember, SeatMember } from './types.ts';
-/** Render only facts reported by Teams; inactive is distinct from idle. */
+/** Preserve the host's status; both legacy idle and current inactive may rest. */
 export function officeMembers(members: readonly TeamMemberView[]): OfficeMember[] {
   return members.map(member => ({
     id: member.id, name: member.name, role: member.role, status: member.status,

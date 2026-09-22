@@ -33,7 +33,7 @@ export function apply(ctx: ClientContext) {
   };
   ctx.effect(() => {
     const gate = createOfficeAvailability(() => ctx.sidebarRightTabs.register({
-      id: name, kind: 'dsh-agent-teams-office', title: () => t('title'),
+      id: name, kind: 'dsh-agent-teams-office', title: () => t('title'), keepMounted: true,
       guide: [{ id: 'office', order: 30, title: () => t('title'), description: () => t('description'), icon: OfficeIcon }],
     }), () => scenes.dispose());
     const stop = pollSnapshot(signal => load(null, signal), gate.update,

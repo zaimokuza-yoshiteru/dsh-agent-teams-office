@@ -5,7 +5,7 @@ import type { createOfficeProps } from '../../src/client/team-office/props.ts';
 /** Opaque SDK services are only exercised through the explicitly supplied members. */
 export function stub<T extends object>(fields: Partial<T>): T { return fields as T; }
 export function member(id: string, changes: Partial<OfficeMember> = {}): OfficeMember {
-  return { id, name: id, role: 'teammate', status: 'idle', description: '', model: '', provider: '', diagnostics: [], ...changes };
+  return { id, name: id, role: 'teammate', status: 'inactive', description: '', model: '', provider: '', diagnostics: [], ...changes };
 }
 export function task(changes: Partial<OfficeTask> = {}): OfficeTask {
   return { id: 'task', revision: 1, subject: 'build', description: '', status: 'pending', blockedBy: [], writeScopes: [], ownerId: null, ready: true, writeScopeWarnings: [], ...changes };

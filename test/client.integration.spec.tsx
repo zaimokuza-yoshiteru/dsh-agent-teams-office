@@ -35,15 +35,23 @@ async function setup(enabled = true) {
   const locale = new LocaleRuntime(current.ctx); current.ctx.provide('locale', locale); current.slots.installLocale(locale);
   await current.declare({ rightbar: { kind: 'single', scope: 'root' }, 'conversation.session.header.corner': { kind: 'single', scope: 'session' } });
   await current.sessions.add({ id: 'lead' });
+  await current.sessions.add({ id: 'other' });
   // alpha.2 moved active-view ownership from sessions.open to explicit references.
   let getStore: () => ReturnType<SlotTestRuntime['storeOf']>;
+  let selectSession: (id: SessionId) => void;
   if (typeof current.sessions.retainFor === 'function') {
     const reference = current.sessions.retainFor(current.ctx, 'lead' as SessionId, { source: 'mainView' });
     getStore = () => current.storeOf('rightbar.session', reference);
+    let selected = reference;
+    selectSession = id => {
+      const next = current.sessions.retainFor(current.ctx, id, { source: 'mainView' });
+      selected.release(); selected = next;
+    };
   } else {
     // alpha.1's test runtime uses session IDs before the reference API existed.
     const legacy = current as unknown as {sessions:{open(id:string):void};storeOf(key:'rightbar.session',id:string):ReturnType<SlotTestRuntime['storeOf']>};
     legacy.sessions.open('lead'); getStore = () => legacy.storeOf('rightbar.session','lead');
+    selectSession = id => legacy.sessions.open(id);
   }
   await current.mount({ inject: [...sidebarInject], apply: sidebarApply });
   current.ctx.sidebarRightTabs.register({ id: 'fixture/files', kind: 'files', title: () => 'Files',
@@ -57,7 +65,7 @@ async function setup(enabled = true) {
   const store = getStore();
   const controller = current.ctx.sidebarRight;
   const layout = () => (store.getSnapshot() as SidebarRightState).bySession.lead.layout;
-  return { runtime:current, feature, view, rpc, controller, layout };
+  return { runtime:current, feature, view, rpc, controller, layout, selectSession };
 }
 
 it('native floating/docking keeps one scene; selection has no conversation navigation; unload releases it', async () => {
@@ -101,4 +109,36 @@ it('disabled Agent Teams leaves no Office entry', async () => {
   await act(async () => { h.controller.toggleExpanded(); });
   expect(document.body.textContent).not.toMatch(/办公室|Office/);
   expect(scenes).toHaveLength(0);
+});
+
+// DSH 0.1.7 retains visited tabs across main-session changes.
+it.skipIf(!sidebarInject.includes('uiSession'))('switching sessions and hiding the sidebar preserves the office and suspends its work', async () => {
+  const h = await setup();
+  await act(async () => { h.controller.openTab('dsh-agent-teams-office'); });
+  await waitFor(() => expect(scenes).toHaveLength(1));
+  const first = scenes[0], tab = h.controller.active(); assert.ok(tab);
+  await act(async () => { first.select('lead'); h.controller.toggleExpanded(); });
+  expect(first.setActive).toHaveBeenLastCalledWith(false);
+  const leadCalls = () => h.rpc.mock.calls.filter(([, , payload]) =>
+    payload && typeof payload === 'object' && 'sessionId' in payload && payload.sessionId === 'lead').length;
+  const beforeHide = leadCalls();
+  await new Promise(resolve => setTimeout(resolve, 1600));
+  expect(leadCalls()).toBe(beforeHide);
+  await act(async () => { h.controller.toggleExpanded(); h.controller.float(tab.id); });
+  expect(first.setActive).toHaveBeenLastCalledWith(true);
+  await act(async () => { h.selectSession('other' as SessionId); });
+  expect(first.setActive).toHaveBeenLastCalledWith(false);
+  const beforeSwitch = leadCalls();
+  await new Promise(resolve => setTimeout(resolve, 1600));
+  expect(leadCalls()).toBe(beforeSwitch);
+  expect(first.destroy).not.toHaveBeenCalled();
+  await act(async () => { h.selectSession('lead' as SessionId); });
+  expect(first.setActive).toHaveBeenLastCalledWith(true);
+  expect(scenes).toHaveLength(1);
+  expect(document.querySelector('canvas')).toBe(first.canvas);
+  expect(first.camera.zoom).toBe(1.4); expect(first.tick).toBe(42);
+  expect(within(document.body).getByRole('button', { name: /聚焦|Focus/ })).toBeTruthy();
+  await act(async () => { h.controller.dock(findTabPane(h.layout(), tab.id).id); h.controller.close(tab.id); });
+  expect(first.destroy).toHaveBeenCalledOnce();
+  expect(document.querySelector('canvas')).toBeNull();
 });

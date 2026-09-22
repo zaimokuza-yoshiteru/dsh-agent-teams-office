@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createActivityFeed } from '../src/host/activity-feed.ts';
 import { createActivityInbox } from '../src/client/activities.ts';
@@ -15,6 +15,7 @@ import { readOfficeSnapshot } from '../src/host/snapshot.ts';
 const repo = process.env.DSH_DESKTOP_REPO;
 assert.ok(repo,'DSH_DESKTOP_REPO is required');
 const require = createRequire(join(repo, 'node_modules/.pnpm/node_modules/package.json'));
+const hostVersion: string = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version;
 interface HostModules {
   '@deepseek-ai/cordis': typeof import('@deepseek-ai/cordis');
   '@deepseek-ai/dsh-agent-loop-testkit': typeof import('@deepseek-ai/dsh-agent-loop-testkit');
@@ -79,10 +80,11 @@ try {
   worker.cancel({ kind: 'parent' });
   await worker.whenIdle();
   const idle = readOfficeSnapshot(ctx, lead.id);
-  assert.equal(idle.members.find(row => row.id === worker.id)?.status, 'idle');
+  const restStatus = hostVersion.startsWith('0.1.6') ? 'idle' : 'inactive';
+  assert.equal(idle.members.find(row => row.id === worker.id)?.status, restStatus);
   feed.dispose();
   console.log('PASS: committed message, task claim, completion and replay prevention.');
-  console.log('PASS: real DSH Teams lead/member mapping, shared task, running → idle; zero external model calls.');
+  console.log(`PASS: DSH ${hostVersion} Teams lead/member mapping, shared task, running → ${restStatus}; zero external model calls.`);
 } finally {
   await ctx.fiber.dispose();
   rmSync(storage, { recursive: true, force: true });

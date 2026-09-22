@@ -16,7 +16,7 @@
 
 ## 安装
 
-支持 **DSH 0.1.6-alpha.1 / 0.1.6-alpha.2**，并在宿主中启用 Agent Teams。未启用时不会显示办公室入口。
+支持 **DSH 0.1.6-alpha.1 / 0.1.6-alpha.2 / 0.1.7-alpha.1**，并在宿主中启用 Agent Teams。未启用时不会显示办公室入口。
 
 在桌面端的「Desktop Plugins」中安装：
 
