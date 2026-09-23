@@ -61,7 +61,7 @@ export interface OfficeScene {
   activities(events: OfficeActivity[], options: SceneActivities): void;
   setActive(active: boolean): void;
   fit(): void;
-  focus(id: string): void;
+  focus(id: string | null): boolean;
   destroy(): void;
 }
 export type SceneFactory = (element: HTMLElement, select: (id: string) => void, error: (error: Error) => void, options: { view: ViewMode }) => Promise<OfficeScene>;

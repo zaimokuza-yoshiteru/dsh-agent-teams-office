@@ -79,8 +79,10 @@ export async function createOfficeScene(element: HTMLElement, onSelect: (id: str
       setActive(active) { if (active) app.start(); else app.stop(); },
       fit() { camera.fitToScreen(); },
       focus(id) {
+        if (id === null) return false;
         const entry = characters.get(id);
-        if (entry) { const p = entry.character.getPixelPosition(); camera.focusOn(p.x, p.y, 2.6); }
+        if (!entry) return false;
+        const p = entry.character.getPixelPosition(); camera.focusOn(p.x, p.y, 2.6); return true;
       },
       update(members, statusLabel) {
         if (destroyed) return;

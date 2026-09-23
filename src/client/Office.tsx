@@ -9,7 +9,7 @@ import { TEAMMATE_CAPACITY } from './team-office/layout.ts';
 
 /** Native sidebar tab content; the scene survives docking and floating through its tab-owned cache. */
 export function Office({ t, load, sessionId, visible, signal, office }: OfficeProps) {
-  const { snapshot, selected, sceneError, ready, view } = useSyncExternalStore(office.subscribe, office.getSnapshot);
+  const { snapshot, selected, focused, sceneError, ready, view } = useSyncExternalStore(office.subscribe, office.getSnapshot);
   const [error, setError] = useState<Error | null>(null);
   const [retry, setRetry] = useState(0);
   const canvas = useRef<HTMLDivElement>(null), seat = useRef<SceneMount | null>(null);
@@ -50,7 +50,9 @@ export function Office({ t, load, sessionId, visible, signal, office }: OfficePr
     </div>}
     {member && <div className="office-selection">
       <div><strong>{member.name}</strong><span>{stateText(member.status)}</span></div>
-      <Button variant="ghost" size="sm" onClick={() => office.focus(member.id)}>{t('focus')}</Button>
+      <Button variant={focused === member.id ? 'outline' : 'ghost'} size="sm" disabled={!ready}
+        aria-pressed={threeD ? focused === member.id : undefined} title={focused === member.id ? t('stopFocus') : t('focus')}
+        onClick={() => office.focus(member.id)}>{t(focused === member.id ? 'focusing' : 'focus')}</Button>
       <Button variant="ghost" size="sm" aria-label={t('dismiss')} onClick={() => office.select(null)}>×</Button>
     </div>}
     {overflow && <div className="office-overflow">{t('overflow')}</div>}

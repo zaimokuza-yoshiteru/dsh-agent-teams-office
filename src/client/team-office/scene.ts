@@ -8,6 +8,7 @@ import { makeTeamOffice } from './model.ts';
 import { layoutNameplates } from './nameplates.ts';
 import { assignTeamSeats, STATIONS } from './layout.ts';
 import { createTeamMotion, updateTeamMotion, poseTeamCharacter, statusMotion } from './motion.ts';
+import { createFollowCamera } from './follow-camera.ts';
 
 export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id: string) => void, onError: (error: Error) => void): Promise<OfficeScene> {
   const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-16, 16, 12, -12, .1, 150);
@@ -15,6 +16,7 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
   let renderer: THREE.WebGLRenderer, model: ReturnType<typeof makeTeamOffice>, controls: OrbitControls, observer: ResizeObserver, activities: ReturnType<typeof createTeamActivities>, effects: ReturnType<typeof createActivityEffects>, props: ReturnType<typeof createOfficeProps>, stageGeo: THREE.PlaneGeometry, stageMat: THREE.ShadowMaterial, frame = 0, last = 0, active = false, destroyed = false;
   let members: OfficeMember[] = [], seats = new Map<string, number>(), labelFor: StatusLabel = value => value, selected: string | null = null;
   const motions = STATIONS.map((_, i) => createTeamMotion(i));
+  let following: string | null = null, follow: ReturnType<typeof createFollowCamera>;
   const plates = new Map<string, HTMLButtonElement>(), stems = new Map<string, SVGLineElement>();
   const labelMetrics = document.createElement('canvas').getContext('2d');
   if (labelMetrics) labelMetrics.font = '600 10px system-ui';
@@ -61,6 +63,10 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
       const mode = activities?.owns(member.id) ? 'activity' : statusMotion(member.status);
       updateTeamMotion(motions[index], mode, dt); poseTeamCharacter(rig,motions[index]);
     });
+    if (following !== null) {
+      const index = seats.get(following);
+      if (index !== undefined) follow.update(model.characters[index].avatar.position);
+    }
     controls.update(); renderer.render(scene,camera); effects?.draw(dt);
     const projected = [];
     for (const [id, plate] of plates) {
@@ -81,12 +87,7 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
     if (destroyed || active === value) return; active=value; last=0; cancelAnimationFrame(frame);
     if (active) frame=requestAnimationFrame(draw);
   }
-  function fit() { camera.position.set(19,23,28); controls.target.set(0,.45,0); camera.zoom=1; camera.updateProjectionMatrix(); controls.update(); }
-  function focusSeat(index: number) {
-    const target=model.characters[index].avatar.position.clone(); target.y=.7;
-    const offset=camera.position.clone().sub(controls.target); controls.target.copy(target); camera.position.copy(target).add(offset);
-    camera.zoom=3.8; camera.updateProjectionMatrix(); controls.update();
-  }
+  function fit() { following=null; follow.stop(); camera.position.set(19,23,28); controls.target.set(0,.45,0); camera.zoom=1; camera.updateProjectionMatrix(); controls.update(); }
   function destroy() {
     if (destroyed) return; destroyed=true; active=false; cancelAnimationFrame(frame); observer?.disconnect(); controls?.dispose();
     for (const detach of detachEvents) detach(); detachEvents.length = 0;
@@ -123,18 +124,23 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
     const stage=new THREE.Mesh(stageGeo,stageMat); stage.rotation.x=-Math.PI/2; stage.position.y=-.31; stage.receiveShadow=true; scene.add(stage);
     controls=new OrbitControls(camera,canvas); controls.enableDamping=true; controls.enablePan=true;
     controls.minPolarAngle=.38; controls.maxPolarAngle=1.16; controls.minAzimuthAngle=-.18; controls.maxAzimuthAngle=1.40;
-    controls.minZoom=.75; controls.maxZoom=6; fit();
+    controls.minZoom=.75; controls.maxZoom=6; follow=createFollowCamera(camera,controls); fit();
     const resize=()=>{if(destroyed)return; const w=Math.max(100,element.clientWidth),h=Math.max(100,element.clientHeight),a=w/h;
       renderer.setSize(w,h); const extent=Math.max(10.4,14.8/a); camera.left=-extent*a; camera.right=extent*a; camera.top=extent;camera.bottom=-extent;camera.updateProjectionMatrix();};
     observer=new ResizeObserver(resize); observer.observe(element); resize(); setActive(true);
     return { destroy,setActive,fit,
       activities(events, options) { props.tasks(options.tasks ?? []); effects.label(options.label); effects.tools(Object.fromEntries(Object.entries(options.tools ?? {}).filter(([id])=>members.some(m=>m.id===id&&m.status==='running')))); if(options.reset)activities.reset(); activities.enqueue(events); },
-      focus(id) { const index=seats.get(id); if(index!==undefined) focusSeat(index); },
+      focus(id) {
+        if (id === null) { following=null; follow.stop(); return true; }
+        const index=seats.get(id); if(index===undefined) return false;
+        following=id; follow.start(model.characters[index].avatar.position); return true;
+      },
       update(values,statusLabel,id) {
         const next=assignTeamSeats(seats,values);
         // Reset only newly occupied seats; polling/reordering retains motion and identity.
         for(const [memberId,index] of next) if(seats.get(memberId)!==index) motions[index]=createTeamMotion(index);
         seats=next; members=values; labelFor=statusLabel; selected=id; activities.update();
+        if (following !== null && !seats.has(following)) { following=null; follow.stop(); }
         for (const [memberId, plate] of plates) if (!seats.has(memberId)) { plate.remove(); plates.delete(memberId); stems.get(memberId)!.remove(); stems.delete(memberId); }
         for (const member of members) {
           if (!seats.has(member.id)) continue;

@@ -21,7 +21,7 @@ vi.mock('../src/client/office.css', () => ({ default: '' }));
 vi.mock('../src/client/scene-factory.ts', () => ({ createOfficeScene: ((async (host, select, _error, { view }) => {
   const canvas = document.createElement('canvas'); host.append(canvas);
   const scene = { canvas, view, select, camera: { zoom: 1.4 }, tick: 42,
-    update: vi.fn(), activities: vi.fn(), fit: vi.fn(), focus: vi.fn(), setActive: vi.fn(), destroy: vi.fn(() => canvas.remove()) };
+    update: vi.fn(), activities: vi.fn(), fit: vi.fn(), focus: vi.fn(() => true), setActive: vi.fn(), destroy: vi.fn(() => canvas.remove()) };
   scenes.push(scene); return scene;
 }) satisfies SceneFactory) }));
 let runtime:SlotTestRuntime|null = null;
@@ -77,6 +77,9 @@ it('native floating/docking keeps one scene; selection has no conversation navig
   expect(document.body.textContent).toContain('Lead');
   expect(document.body.textContent).not.toMatch(/查看会话|View conversation/);
   expect(within(h.view.container).queryAllByRole('button').some(b => /聚焦|Focus/.test(b.textContent ?? ''))).toBe(true);
+  await act(async () => { fireEvent.click(within(document.body).getByRole('button', { name: /^(聚焦|Focus)$/ })); });
+  expect(within(document.body).getByRole('button', { name: /聚焦中|Following/ }).getAttribute('aria-pressed')).toBe('true');
+  expect(first.focus).toHaveBeenLastCalledWith('lead');
   const tabElement = h.view.container.querySelector(`[data-dockkit-tab="${tab.id}"]`); assert.ok(tabElement);
   fireEvent.contextMenu(tabElement);
   await act(async () => { fireEvent.click(within(document.body).getByRole('menuitem', { name: /悬浮显示办公室|Float office/ })); });
@@ -84,6 +87,9 @@ it('native floating/docking keeps one scene; selection has no conversation navig
   expect(findTabPane(h.layout(), tab.id).host).toBe('float');
   expect(document.querySelectorAll('canvas')).toHaveLength(1);
   expect(document.querySelector('canvas')).toBe(first.canvas);
+  await act(async () => { fireEvent.click(within(document.body).getByRole('button', { name: /聚焦中|Following/ })); });
+  expect(first.focus).toHaveBeenLastCalledWith(null);
+  expect(within(document.body).getByRole('button', { name: /^(聚焦|Focus)$/ }).getAttribute('aria-pressed')).toBe('false');
   expect(scenes).toHaveLength(1); expect(first.destroy).not.toHaveBeenCalled();
   expect(first.camera.zoom).toBe(1.4); expect(first.tick).toBe(42);
   await act(async () => { h.controller.dock(findTabPane(h.layout(), tab.id).id); });

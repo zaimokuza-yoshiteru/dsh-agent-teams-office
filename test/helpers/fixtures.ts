@@ -15,7 +15,7 @@ export function snapshot(changes: Partial<Extract<OfficeSnapshot, {state: 'live'
 }
 export function emptySnapshot(state: 'disabled' | 'unselected' | 'inactive'): OfficeSnapshot { return { state, leadId: null, members: [], tasks: [] }; }
 export function scene(changes: Partial<OfficeScene> = {}): OfficeScene {
-  return { update() {}, activities() {}, fit() {}, focus() {}, setActive() {}, destroy() {}, ...changes };
+  return { update() {}, activities() {}, fit() {}, focus() { return true; }, setActive() {}, destroy() {}, ...changes };
 }
 export function effects(changes: Partial<ReturnType<typeof createActivityEffects>> = {}): ReturnType<typeof createActivityEffects> {
   return { label() {}, tools() {}, action() {}, clear() {}, envelope() {}, reset() {}, draw() {}, destroy() {}, ...changes };
