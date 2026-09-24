@@ -11,7 +11,8 @@ export function readOfficeSnapshot(ctx: HostContext, sessionId: string | null): 
   const agent = ctx.agents.get(sessionId as SessionId);
   const membership = agent && teams.tryMembership(agent);
   if (!membership) return { state: 'inactive', members: [], tasks: [], leadId: null };
-  const view = teams.remoteView(membership.root);
+  const members = teams.listMembers(membership.root);
+  const tasks = teams.listTasks(membership.root);
   return { state: 'live', leadId: membership.root.id,
-    members: officeMembers(view.members), tasks: view.tasks.map(task => ({ ...task, ownerId: view.members.find(m => m.name === task.ownerName)?.id ?? null })), sampledAt: Date.now() };
+    members: officeMembers(members), tasks: tasks.map(task => ({ ...task, ownerId: members.find(m => m.name === task.ownerName)?.id ?? null })), sampledAt: Date.now() };
 }

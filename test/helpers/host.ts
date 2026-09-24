@@ -17,7 +17,8 @@ export function hostFixture(leadId = 'root', childId = 'child') {
   ctx.provide('agents', stub<HostContext['agents']>({get:id=>agents.get(id)}));
   ctx.provide('agentTeams', stub<HostContext['agentTeams']>({
     tryMembership: value => ({root, id:root.id as string as TeamId, role:value===root?'lead':'teammate', name:value===root?'lead':'builder'}),
-    remoteView: () => ({ members, tasks }),
+    listMembers: () => members,
+    listTasks: () => tasks,
   }));
   ctx.provide('sessions', stub<HostContext['sessions']>({flush:async()=>true}));
   ctx.provide('sessionProjections', stub<HostContext['sessionProjections']>({stateOf:()=>undefined}));
