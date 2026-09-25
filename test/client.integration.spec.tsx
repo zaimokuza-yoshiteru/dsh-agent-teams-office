@@ -17,6 +17,7 @@ import * as plugin from '../src/client/index.tsx';
 
 interface TestScene extends OfficeScene {canvas:HTMLCanvasElement;view:ViewMode;select:(id:string)=>void;camera:{zoom:number};tick:number}
 const scenes = vi.hoisted(() => [] as TestScene[]);
+const emptyShortcutCatalog: readonly never[] = Object.freeze([]);
 vi.mock('../src/client/office.css', () => ({ default: '' }));
 vi.mock('../src/client/scene-factory.ts', () => ({ createOfficeScene: ((async (host, select, _error, { view }) => {
   const canvas = document.createElement('canvas'); host.append(canvas);
@@ -33,7 +34,10 @@ async function setup(enabled = true) {
   current.ctx.provide('layout', stub<ClientContext['layout']>({ openRightbar() {}, closeRightbar() {} }));
   current.ctx.provide('resources', stub<Resources>({ pin() {} }));
   const locale = new LocaleRuntime(current.ctx); current.ctx.provide('locale', locale); current.slots.installLocale(locale);
-  await current.declare({ rightbar: { kind: 'single', scope: 'root' }, 'conversation.session.header.corner': { kind: 'single', scope: 'session' } });
+  await current.declare({ rightbar: { kind: 'single', scope: 'root' } });
+  // RC2 sidebar installs its page shortcuts through this host service.
+  current.ctx.provide('shortcuts', { runtime: 'web', register: () => () => {},
+    catalog: { getSnapshot: () => emptyShortcutCatalog, subscribe: () => () => {} } } as never);
   await current.sessions.add({ id: 'lead' });
   await current.sessions.add({ id: 'other' });
   // alpha.2 moved active-view ownership from sessions.open to explicit references.
