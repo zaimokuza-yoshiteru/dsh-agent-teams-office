@@ -84,16 +84,50 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
     }
   }
   function setActive(value: boolean) {
-    if (destroyed || active === value) return; active=value; last=0; cancelAnimationFrame(frame);
-    if (active) frame=requestAnimationFrame(draw);
+    if (destroyed || active === value) return;
+    active = value;
+    last = 0;
+    cancelAnimationFrame(frame);
+    if (active) frame = requestAnimationFrame(draw);
   }
-  function fit() { following=null; follow.stop(); camera.position.set(19,23,28); controls.target.set(0,.45,0); camera.zoom=1; camera.updateProjectionMatrix(); controls.update(); }
+  function fit() {
+    following = null;
+    follow.stop();
+    camera.position.set(19, 23, 28);
+    controls.target.set(0, .45, 0);
+    camera.zoom = 1;
+    camera.updateProjectionMatrix();
+    controls.update();
+  }
   function destroy() {
-    if (destroyed) return; destroyed=true; active=false; cancelAnimationFrame(frame); observer?.disconnect(); controls?.dispose();
-    for (const detach of detachEvents) detach(); detachEvents.length = 0;
-    activities?.dispose(); effects?.destroy(); props?.destroy(); model?.dispose(); stageGeo?.dispose(); stageMat?.dispose();
-    scene.traverse(item=>{if(item instanceof THREE.DirectionalLight || item instanceof THREE.SpotLight) item.shadow.dispose();});
-    renderer?.dispose(); renderer?.forceContextLoss(); renderer?.domElement.remove(); for (const plate of plates.values()) plate.remove(); plates.clear(); stems.clear(); leaders.remove();
+    if (destroyed) return;
+    destroyed = true;
+    active = false;
+
+    // Stop callbacks before releasing the resources they use.
+    cancelAnimationFrame(frame);
+    observer?.disconnect();
+    controls?.dispose();
+    for (const detach of detachEvents) detach();
+    detachEvents.length = 0;
+
+    activities?.dispose();
+    effects?.destroy();
+    props?.destroy();
+    model?.dispose();
+    stageGeo?.dispose();
+    stageMat?.dispose();
+    scene.traverse(item => {
+      if (item instanceof THREE.DirectionalLight || item instanceof THREE.SpotLight) item.shadow.dispose();
+    });
+
+    renderer?.dispose();
+    renderer?.forceContextLoss();
+    renderer?.domElement.remove();
+    for (const plate of plates.values()) plate.remove();
+    plates.clear();
+    stems.clear();
+    leaders.remove();
   }
   try {
     renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -125,9 +159,21 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
     controls=new OrbitControls(camera,canvas); controls.enableDamping=true; controls.enablePan=true;
     controls.minPolarAngle=.38; controls.maxPolarAngle=1.16; controls.minAzimuthAngle=-.18; controls.maxAzimuthAngle=1.40;
     controls.minZoom=.75; controls.maxZoom=6; follow=createFollowCamera(camera,controls); fit();
-    const resize=()=>{if(destroyed)return; const w=Math.max(100,element.clientWidth),h=Math.max(100,element.clientHeight),a=w/h;
-      renderer.setSize(w,h); const extent=Math.max(10.4,14.8/a); camera.left=-extent*a; camera.right=extent*a; camera.top=extent;camera.bottom=-extent;camera.updateProjectionMatrix();};
-    observer=new ResizeObserver(resize); observer.observe(element); resize(); setActive(true);
+    const resize = () => {
+      if (destroyed) return;
+      const w = Math.max(100, element.clientWidth), h = Math.max(100, element.clientHeight), a = w / h;
+      renderer.setSize(w, h);
+      const extent = Math.max(10.4, 14.8 / a);
+      camera.left = -extent * a;
+      camera.right = extent * a;
+      camera.top = extent;
+      camera.bottom = -extent;
+      camera.updateProjectionMatrix();
+    };
+    observer = new ResizeObserver(resize);
+    observer.observe(element);
+    resize();
+    setActive(true);
     return { destroy,setActive,fit,
       activities(events, options) { props.tasks(options.tasks ?? []); effects.label(options.label); effects.tools(Object.fromEntries(Object.entries(options.tools ?? {}).filter(([id])=>members.some(m=>m.id===id&&m.status==='running')))); if(options.reset)activities.reset(); activities.enqueue(events); },
       focus(id) {
@@ -152,5 +198,8 @@ export async function createTeamOfficeScene(element: HTMLElement, onSelect: (id:
         }
       },
     };
-  } catch(error) { destroy(); throw error; }
+  } catch (error) {
+    destroy();
+    throw error;
+  }
 }
