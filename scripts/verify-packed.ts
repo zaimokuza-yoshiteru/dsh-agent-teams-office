@@ -19,7 +19,7 @@ assert.equal(packed.name, manifest.name);
 assert.equal(packed.version, manifest.version);
 const files = packed.files.map(file => file.path).sort();
 const expected = [
-  'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'cordis.patch.yml',
+  'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'cordis.patch.yml', 'icon.svg',
   'lib/THIRD_PARTY_LICENSES.txt', 'lib/client.js', 'package.json',
   'lib/host.js',
   'vendor/munder/LICENSE', 'vendor/the-office/LICENSE', 'vendor/three/LICENSE',
@@ -33,6 +33,9 @@ try {
   writeFileSync(join(fixture, 'package.json'), '{"private":true,"type":"module"}\n');
   execFileSync(npm, ['install', join(dist, packed.filename), '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: fixture, stdio: 'pipe' });
   const installed = join(fixture, 'node_modules', manifest.name);
+  const installedManifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'));
+  assert.equal(installedManifest.icon, './icon.svg');
+  assert.deepEqual(readFileSync(join(installed, installedManifest.icon)), readFileSync(join(root, 'icon.svg')));
   const host = await import(pathToFileURL(join(installed, 'lib/host.js')).href);
   assert.equal(host.name, 'dsh-agent-teams-office');
   assert.equal(typeof host.apply, 'function');

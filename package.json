@@ -1,8 +1,9 @@
 {
   "name": "@zaimokuza/dsh-agent-teams-office",
-  "version": "0.1.0-beta.6",
+  "version": "0.1.0-beta.7",
   "private": false,
   "description": "Office views for DSH Agent Teams.",
+  "icon": "./icon.svg",
   "type": "module",
   "main": "./lib/host.js",
   "exports": {
@@ -95,6 +96,7 @@
     "lib/host.js",
     "lib/client.js",
     "cordis.patch.yml",
+    "icon.svg",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
